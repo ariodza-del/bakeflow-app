@@ -1,0 +1,1434 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BAKEFLOW — Sistem Pembelian, Inspeksi Inventori & Jurnal Toko Kue</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #FAF6F0;
+      color: #3D2B1F;
+    }
+    .font-display {
+      font-family: 'Playfair Display', serif;
+    }
+
+    @keyframes marquee {
+      0% { transform: translateX(0%); }
+      100% { transform: translateX(-50%); }
+    }
+    .animate-marquee {
+      display: flex;
+      width: max-content;
+      animation: marquee 30s linear infinite;
+    }
+    .animate-marquee:hover { animation-play-state: paused; }
+
+    @keyframes logoPop {
+      0% { opacity: 0; transform: scale(0.9) translateY(12px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    @keyframes barFill {
+      0% { width: 0%; }
+      100% { width: 100%; }
+    }
+    @keyframes splashOut {
+      0% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-24px) scale(1.01); }
+    }
+    @keyframes contentReveal {
+      0% { opacity: 0; transform: translateY(12px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes shakeError {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+    @keyframes popUpMenu {
+      0% { opacity: 0; transform: translate(-50%, 14px) scale(0.96); }
+      100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+    }
+
+    .animate-logo-pop {
+      animation: logoPop 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    .animate-bar-fill {
+      animation: barFill 1.1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+    .splash-exit {
+      animation: splashOut 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      pointer-events: none;
+    }
+    .content-reveal {
+      animation: contentReveal 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+    .animate-shake {
+      animation: shakeError 0.28s ease-in-out;
+    }
+    .animate-pop-menu {
+      animation: popUpMenu 0.22s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-[#C86D51]/20 selection:text-[#3D2B1F]">
+
+  <!-- 1. LAYAR PEMBUKA LEMBUT (SPLASH SCREEN) -->
+  <div id="splash-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#F6EFE6] px-6 text-center">
+    <div class="animate-logo-pop flex flex-col items-center">
+      <div class="w-16 h-16 rounded-2xl bg-[#C86D51] flex items-center justify-center font-display font-bold text-[#FAF6F0] text-3xl shadow-md shadow-[#C86D51]/20">
+        BF
+      </div>
+      <div class="mt-4 font-display text-3xl md:text-4xl font-bold tracking-tight text-[#3D2B1F]">
+        Bake<span class="italic text-[#C86D51]">Flow</span>
+      </div>
+      <p class="mt-1.5 text-xs uppercase tracking-[0.22em] text-[#7A6658]">
+        Bakery Inventory • QC • Auto-Journal
+      </p>
+
+      <div class="mt-6 w-48 h-1.5 bg-[#E6DDD0] rounded-full overflow-hidden">
+        <div class="h-full bg-[#C86D51] rounded-full animate-bar-fill"></div>
+      </div>
+
+      <button
+        type="button"
+        onclick="dismissSplash(true)"
+        class="mt-6 text-xs font-medium text-[#7A6658] hover:text-[#C86D51] underline underline-offset-4 transition"
+      >
+        Lanjut ke Verifikasi Akses →
+      </button>
+    </div>
+  </div>
+
+  <!-- 2. GERBANG LOGIN WAJIB (EMPLOYEE / OWNER) -->
+  <div id="auth-gate" class="fixed inset-0 z-40 hidden flex items-center justify-center bg-[#FAF6F0]/90 backdrop-blur-md px-4">
+    <div id="auth-card" class="w-full max-w-md bg-white border border-[#E6DDD0] rounded-3xl p-6 sm:p-8 shadow-xl shadow-[#3D2B1F]/5">
+      <div class="flex items-center gap-3.5 mb-6">
+        <div class="w-11 h-11 rounded-2xl bg-[#C86D51] flex items-center justify-center font-display font-bold text-[#FAF6F0] text-xl shadow-sm">
+          BF
+        </div>
+        <div>
+          <h2 class="font-display text-2xl font-bold text-[#3D2B1F]">Selamat Datang</h2>
+          <p class="text-xs text-[#7A6658]">Silakan verifikasi akun untuk mengakses dapur & gudang</p>
+        </div>
+      </div>
+
+      <form onsubmit="handleLogin(event)" class="space-y-4 text-sm">
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-[#7A6658] mb-2">
+            Pilih Peran Pengguna
+          </label>
+          <div class="grid grid-cols-2 gap-3">
+            <label class="cursor-pointer">
+              <input type="radio" name="userRole" value="employee" checked class="peer hidden" onchange="updateRoleHint()" />
+              <div class="p-3 sm:p-3.5 rounded-2xl border border-[#E6DDD0] bg-[#FAF6F0] peer-checked:border-[#C86D51] peer-checked:bg-[#C86D51]/10 transition text-center">
+                <div class="font-semibold text-[#3D2B1F]">Employee / Pekerja</div>
+                <div class="text-[11px] text-[#7A6658] mt-0.5">Stok, PO & Inspeksi QC</div>
+              </div>
+            </label>
+
+            <label class="cursor-pointer">
+              <input type="radio" name="userRole" value="owner" class="peer hidden" onchange="updateRoleHint()" />
+              <div class="p-3 sm:p-3.5 rounded-2xl border border-[#E6DDD0] bg-[#FAF6F0] peer-checked:border-[#C86D51] peer-checked:bg-[#C86D51]/10 transition text-center">
+                <div class="font-semibold text-[#3D2B1F]">Owner</div>
+                <div class="text-[11px] text-[#7A6658] mt-0.5">Akses Penuh + Jurnal</div>
+              </div>
+            </label>
+          </div>
+          <p id="role-hint" class="mt-2 text-xs text-[#7A6658] leading-relaxed">
+            Mode Employee: Dapat mengelola stok, PO, dan inspeksi QC. Jurnal akuntansi dikunci khusus Owner.
+          </p>
+        </div>
+
+        <div>
+          <label for="login-username" class="block font-medium text-[#3D2B1F] mb-1">Nama Pengguna (User)</label>
+          <input
+            type="text"
+            id="login-username"
+            placeholder="Contoh: Budi (Staff Gudang) atau Zaki"
+            required
+            class="w-full bg-[#FAF6F0] border border-[#E6DDD0] focus:border-[#C86D51] focus:bg-white focus:outline-none rounded-xl px-4 py-2.5 text-[#3D2B1F] placeholder-[#A39386] transition"
+          />
+        </div>
+
+        <div>
+          <label for="login-password" class="block font-medium text-[#3D2B1F] mb-1">Kata Sandi Akses</label>
+          <input
+            type="password"
+            id="login-password"
+            placeholder="Masukkan password otorisasi..."
+            required
+            class="w-full bg-[#FAF6F0] border border-[#E6DDD0] focus:border-[#C86D51] focus:bg-white focus:outline-none rounded-xl px-4 py-2.5 text-[#3D2B1F] placeholder-[#A39386] transition"
+          />
+        </div>
+
+        <div id="login-error" class="hidden text-xs text-[#B84A39] bg-[#FDF0EE] border border-[#B84A39]/25 rounded-xl px-3.5 py-2.5">
+          Password salah! Akses ditolak.
+        </div>
+
+        <button
+          type="submit"
+          class="w-full py-3 bg-[#C86D51] hover:bg-[#B55C41] text-white font-semibold rounded-xl transition shadow-md shadow-[#C86D51]/20"
+        >
+          Masuk ke Sistem Bakery
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. PEMBUNGKUS HALAMAN UTAMA -->
+  <div id="app-shell" class="min-h-screen flex flex-col hidden opacity-0 pb-28">
+
+    <!-- HERO BANNER -->
+    <section id="hero-banner" class="relative overflow-hidden border-b border-[#E6DDD0] bg-[#F3ECE1]">
+      <img
+        src="https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=1600&q=80"
+        alt="Bahan Baku Toko Kue"
+        class="absolute inset-0 w-full h-full object-cover opacity-20 mix-blend-multiply"
+      />
+      <div class="absolute inset-0 bg-gradient-to-r from-[#FAF6F0] via-[#FAF6F0]/90 to-[#F3ECE1]/65"></div>
+
+      <div class="relative max-w-7xl mx-auto px-4 sm:px-6 py-8 md:py-14">
+        <div class="flex flex-wrap items-center gap-2.5 mb-3">
+          <span class="px-3 py-1 text-xs font-semibold tracking-wider uppercase bg-[#C86D51]/15 text-[#B55C41] rounded-full">
+            BakeFlow Kitchen & Pantry
+          </span>
+          <span class="text-xs text-[#7A6658]">
+            Pengadaan • Bukti Struk • Inspeksi QC • Jurnal Otomatis
+          </span>
+        </div>
+
+        <h1 class="font-display text-3xl md:text-5xl font-bold tracking-tight leading-tight text-[#3D2B1F]">
+          Bahan Baku Segar, <br />
+          <span class="italic text-[#C86D51]">Pencatatan</span> Rapi & Terukur.
+        </h1>
+        <p class="mt-3 max-w-2xl text-sm md:text-base text-[#6A574B] leading-relaxed">
+          Kelola pembelian bahan baku kue dengan lampiran foto struk asli, pemeriksaan kualitas barang masuk (QC), pemakaian adonan harian (FEFO), hingga jurnal akuntansi otomatis.
+        </p>
+
+        <div class="mt-6 flex flex-wrap gap-3">
+          <button onclick="switchTab('po')" class="relative inline-flex items-center gap-2.5 px-5 py-2.5 bg-[#C86D51] hover:bg-[#B55C41] text-white font-semibold text-sm rounded-xl transition shadow-sm shadow-[#C86D51]/20">
+            <span>+ Pembelian & Upload Struk</span>
+            <span id="hero-low-dot" class="hidden inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-600 text-white text-[11px] font-bold">
+              <span class="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+              <span id="hero-low-count">0</span> Kurang/Habis
+            </span>
+          </button>
+
+          <button onclick="switchTab('inspection')" class="px-5 py-2.5 bg-white hover:bg-[#F3ECE1] text-[#3D2B1F] font-semibold text-sm rounded-xl border border-[#E6DDD0] transition shadow-sm">
+            Cek Inspeksi Masuk (<span id="hero-pending-count" class="text-[#C86D51]">1</span>)
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- HEADER & NAVIGASI DESKTOP -->
+    <header class="sticky top-0 z-30 bg-[#FAF6F0]/95 backdrop-blur border-b border-[#E6DDD0]">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('board')" title="Kembali ke Board Utama">
+          <div class="w-9 h-9 rounded-xl bg-[#C86D51] flex items-center justify-center font-display font-bold text-white text-lg shadow-sm">
+            BF
+          </div>
+          <div>
+            <span class="font-display font-bold text-lg text-[#3D2B1F]">BakeFlow</span>
+            <span class="text-[11px] text-[#7A6658] hidden sm:block -mt-1">Bakery Pantry & Ledger</span>
+          </div>
+        </div>
+
+        <nav class="hidden md:flex items-center gap-2">
+          <button data-tab="board" onclick="switchTab('board')" class="desktop-tab-btn relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-[#C86D51] text-white shadow-sm">
+            <span>Board Stok</span>
+            <span id="nav-low-dot-desktop" class="hidden w-2.5 h-2.5 rounded-full bg-red-500 ring-2 ring-white animate-pulse" title="Ada persediaan habis atau kurang"></span>
+          </button>
+          <button data-tab="po" onclick="switchTab('po')" class="desktop-tab-btn px-4 py-2 rounded-xl text-sm font-medium text-[#6A574B] hover:bg-[#EFE7DC]">
+            Pembelian & Struk
+          </button>
+          <button data-tab="inspection" onclick="switchTab('inspection')" class="desktop-tab-btn px-4 py-2 rounded-xl text-sm font-medium text-[#6A574B] hover:bg-[#EFE7DC]">
+            Inspeksi QC
+          </button>
+          <button id="nav-journal-btn-desktop" data-tab="journal" onclick="switchTab('journal')" class="desktop-tab-btn px-4 py-2 rounded-xl text-sm font-medium text-[#6A574B] hover:bg-[#EFE7DC]">
+            Jurnal Otomatis
+          </button>
+        </nav>
+
+        <div class="flex items-center gap-2.5 sm:gap-3 pl-2 sm:pl-3 border-l border-[#E6DDD0]">
+          <div class="text-right">
+            <div id="active-user-name" class="text-xs font-bold text-[#3D2B1F] max-w-[90px] sm:max-w-none truncate">User</div>
+            <div id="active-user-role" class="text-[11px] font-medium text-[#C86D51]">Role</div>
+          </div>
+          <button
+            onclick="handleLogout()"
+            class="px-3 py-1.5 rounded-xl bg-white hover:bg-[#FDF0EE] hover:text-[#B84A39] hover:border-[#B84A39]/30 border border-[#E6DDD0] text-xs font-medium text-[#6A574B] transition"
+            title="Kunci Halaman / Ganti User"
+          >
+            Keluar
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- LIVE TICKER / PITA STATUS HANGAT -->
+    <div class="bg-[#F3ECE1] border-b border-[#E6DDD0] py-2 overflow-hidden text-xs">
+      <div id="live-ticker" class="animate-marquee gap-6 text-[#5C4A3E] font-medium"></div>
+    </div>
+
+    <!-- KONTEN UTAMA -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 md:py-8">
+
+      <!-- LEGENDA STATUS & RINGKASAN KPI -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 mb-6 border-b border-[#E6DDD0]">
+        <div class="flex flex-wrap items-center gap-3 sm:gap-4 text-xs text-[#6A574B]">
+          <span class="text-[#7A6658] font-semibold uppercase tracking-wider">Legenda Status:</span>
+          <div class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-[#3A8E54]"></span>
+            <span>Stok Aman</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-red-600 ring-2 ring-red-200"></span>
+            <span class="font-semibold text-red-700">Dot Merah: Habis / Kurang</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-[#4B7BA6]"></span>
+            <span>Inspeksi QC</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-[#D4942A]"></span>
+            <span>Dalam Pengiriman</span>
+          </div>
+        </div>
+
+        <div id="owner-kpi-box" class="flex flex-wrap items-center gap-3 sm:gap-4 text-xs bg-white px-4 py-2.5 rounded-2xl border border-[#E6DDD0] shadow-sm">
+          <div>
+            <span class="text-[#7A6658]">Total Nilai Persediaan:</span>
+            <strong id="kpi-inventory-value" class="text-[#2E6F40] ml-1">Rp 0</strong>
+          </div>
+          <span class="text-[#E6DDD0]">|</span>
+          <div>
+            <span class="text-[#7A6658]">Total Entri Jurnal:</span>
+            <strong id="kpi-journal-count" class="text-[#C86D51] ml-1">0</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 1: BOARD STOK BAHAN BAKU -->
+      <section id="tab-board" class="tab-panel space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div class="flex flex-wrap items-center gap-2.5">
+              <h2 class="font-display text-2xl font-bold text-[#3D2B1F]">Persediaan Bahan Baku (Siap Pakai)</h2>
+              <span id="board-alert-pill" class="hidden inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-50 border border-red-200 text-red-700 text-xs font-semibold">
+                <span class="w-2 h-2 rounded-full bg-red-600 animate-ping"></span>
+                <span id="board-alert-text">0 item perlu perhatian</span>
+              </span>
+            </div>
+            <p class="text-sm text-[#7A6658]">Dot merah menandakan stok habis (0) atau di bawah batas minimum.</p>
+          </div>
+
+          <div class="flex flex-wrap gap-2.5">
+            <button onclick="openAddIngredientModal()" class="flex-1 sm:flex-initial px-4 py-2.5 bg-white hover:bg-[#F3ECE1] border border-[#E6DDD0] text-sm font-semibold rounded-xl text-[#3D2B1F] shadow-sm transition">
+              + Tambah Bahan Baku
+            </button>
+            <button onclick="openProductionModal()" class="flex-1 sm:flex-initial px-4 py-2.5 bg-white hover:bg-[#F3ECE1] border border-[#E6DDD0] text-sm font-semibold rounded-xl text-[#C86D51] shadow-sm transition">
+              - Pemakaian Produksi
+            </button>
+          </div>
+        </div>
+
+        <div id="inventory-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5"></div>
+      </section>
+
+      <!-- TAB 2: PEMBELIAN & LAMPIRAN FOTO STRUK -->
+      <section id="tab-po" class="tab-panel hidden space-y-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="bg-white border border-[#E6DDD0] rounded-2xl p-5 sm:p-6 shadow-sm">
+            <div class="flex items-center justify-between mb-1">
+              <h2 class="font-display text-xl font-bold text-[#3D2B1F]">Input Pembelian & Struk</h2>
+              <button type="button" onclick="openAddIngredientModal()" class="text-xs font-semibold text-[#C86D51] hover:underline">
+                + Bahan Baru
+              </button>
+            </div>
+            <p class="text-xs text-[#7A6658] mb-5">Lampirkan foto struk asli sebagai bukti transaksi yang terhubung ke inspeksi & jurnal.</p>
+
+            <form id="po-form" onsubmit="handleCreatePO(event)" class="space-y-4 text-sm">
+              <div>
+                <label class="block font-medium text-[#3D2B1F] mb-1">Supplier / Toko Pembelian</label>
+                <input
+                  type="text"
+                  id="po-supplier"
+                  list="supplier-options"
+                  placeholder="Pilih atau ketik nama toko/supplier..."
+                  required
+                  class="w-full bg-[#FAF6F0] border border-[#E6DDD0] focus:border-[#C86D51] focus:bg-white focus:outline-none rounded-xl px-3.5 py-2.5 text-[#3D2B1F]"
+                />
+                <datalist id="supplier-options">
+                  <option value="PT Bogasari Flour Mills">
+                  <option value="CV Dairy & Butter Nusantara">
+                  <option value="UD Telur Segar Palembang">
+                  <option value="PT Gula & Cokelat Prima">
+                  <option value="TBK Bahan Kue Sejahtera">
+                </datalist>
+              </div>
+
+              <div>
+                <label class="block font-medium text-[#3D2B1F] mb-1">Bahan Baku</label>
+                <select id="po-ingredient" required class="w-full bg-[#FAF6F0] border border-[#E6DDD0] focus:border-[#C86D51] focus:bg-white focus:outline-none rounded-xl px-3.5 py-2.5 text-[#3D2B1F]"></select>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block font-medium text-[#3D2B1F] mb-1">Jumlah Beli</label>
+                  <input type="number" id="po-qty" min="1" value="10" required class="w-full bg-[#FAF6F0] border border-[#E6DDD0] focus:border-[#C86D51] focus:bg-white focus:outline-none rounded-xl px-3.5 py-2.5 text-[#3D2B1F]" />
+                </div>
+                <div>
+                  <label class="block font-medium text-[#3D2B1F] mb-1">Harga Satuan (Rp)</label>
+                  <input type="number" id="po-price" min="100" value="14500" required class="w-full bg-[#FAF6F0] border border-[#E6DDD0] focus:border-[#C86D51] focus:bg-white focus:outline-none rounded-xl px-3.5 py-2.5 text-[#3D2B1F]" />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block font-medium text-[#3D2B1F] mb-1">No. Struk / Bon</label>
+                  <input
+                    type="text"
+                    id="po-receipt-no"
+                    placeholder="Contoh: STR-88412"
+                    required
+                    class="w-full bg-[#FAF6F0] border border-[#E6DDD0] focus:border-[#C86D51] focus:bg-white focus:outline-none rounded-xl px-3.5 py-2.5 text-[#3D2B1F]"
+                  />
+                </div>
+                <div>
+                  <label class="block font-medium text-[#3D2B1F] mb-1">Metode Pembayaran</label>
+                  <select id="po-payment" class="w-full bg-[#FAF6F0] border border-[#E6DDD0] focus:border-[#C86D51] focus:bg-white focus:outline-none rounded-xl px-3.5 py-2.5 text-[#3D2B1F]">
+                    <option value="Tunai / Transfer (Kas/Bank)">Tunai / Transfer (Kas/Bank)</option>
+                    <option value="Kredit (Utang Usaha)">Kredit / Tempo (Utang Usaha)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label for="po-receipt-file" class="block font-medium text-[#3D2B1F] mb-1">
+                  Foto Struk Pembelian (Wajib Bukti)
+                </label>
+                <input
+                  type="file"
+                  id="po-receipt-file"
+                  accept="image/*"
+                  capture="environment"
+                  required
+                  onchange="handleReceiptPreview(event)"
+                  class="w-full text-xs text-[#6A574B] file:mr-3 file:py-2 file:px-3.5 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#F3ECE1] file:text-[#3D2B1F] hover:file:bg-[#E6DDD0] bg-[#FAF6F0] border border-[#E6DDD0] rounded-xl p-1.5"
+                />
+                <div id="receipt-preview-box" class="hidden mt-2.5 p-2.5 bg-[#FAF6F0] border border-[#E6DDD0] rounded-xl flex items-center gap-3">
+                  <img id="receipt-preview-img" src="" alt="Preview Struk" class="w-12 h-12 rounded-lg object-cover border border-[#E6DDD0]" />
+                  <div class="min-w-0 flex-1">
+                    <div id="receipt-preview-name" class="text-xs font-semibold text-[#3D2B1F] truncate">struk.jpg</div>
+                    <div id="receipt-preview-meta" class="text-[11px] text-[#7A6658]">Siap dilampirkan</div>
+                  </div>
+                </div>
+              </div>
+
+              <button type="submit" class="w-full py-2.5 bg-[#C86D51] hover:bg-[#B55C41] text-white font-semibold rounded-xl transition shadow-sm">
+                Simpan Pembelian & Struk
+              </button>
+            </form>
+          </div>
+
+          <div class="lg:col-span-2 bg-white border border-[#E6DDD0] rounded-2xl p-5 sm:p-6 shadow-sm">
+            <h2 class="font-display text-xl font-bold text-[#3D2B1F] mb-4">Riwayat Pembelian & Bukti Struk</h2>
+
+            <div class="hidden md:block overflow-x-auto">
+              <table class="w-full text-left text-sm">
+                <thead class="text-xs uppercase text-[#7A6658] border-b border-[#E6DDD0]">
+                  <tr>
+                    <th class="pb-3">No. PO & Struk</th>
+                    <th class="pb-3">Bahan & Supplier</th>
+                    <th class="pb-3">Qty</th>
+                    <th class="pb-3">Bukti Struk</th>
+                    <th class="pb-3">Status</th>
+                    <th class="pb-3 text-right">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="po-table-body" class="divide-y divide-[#F0E8DC]"></tbody>
+              </table>
+            </div>
+
+            <div id="po-mobile-cards" class="block md:hidden space-y-3"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: INSPEKSI BARANG MASUK (QUALITY CONTROL) -->
+      <section id="tab-inspection" class="tab-panel hidden space-y-6">
+        <div>
+          <h2 class="font-display text-2xl font-bold text-[#3D2B1F]">Inspeksi Penerimaan Bahan Baku (Quality Control)</h2>
+          <p class="text-sm text-[#7A6658]">
+            Cocokkan barang fisik dengan foto struk pembelian, cek jumlah bagus (Accepted) & kedaluwarsa. Menyetujui inspeksi akan <strong class="text-[#3D2B1F]">menambah stok</strong> dan <strong class="text-[#3D2B1F]">otomatis mencatat jurnal pembelian</strong>.
+          </p>
+        </div>
+
+        <div id="inspection-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+      </section>
+
+      <!-- TAB 4: JURNAL UMUM OTOMATIS (KHUSUS OWNER) -->
+      <section id="tab-journal" class="tab-panel hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="font-display text-2xl font-bold text-[#3D2B1F]">Jurnal Umum Otomatis (Sistem Perpetual)</h2>
+            <p class="text-sm text-[#7A6658]">Terbentuk otomatis saat bahan baku lolos inspeksi masuk dan saat dipakai produksi.</p>
+          </div>
+          <span class="px-3.5 py-1.5 rounded-xl bg-[#EBF5EE] border border-[#2E6F40]/20 text-[#2E6F40] text-xs font-semibold">
+            Validasi Balance: Debit = Kredit Aktif
+          </span>
+        </div>
+
+        <div id="journal-list" class="space-y-4"></div>
+      </section>
+
+    </main>
+
+    <!-- POPOVER SUB-MENU SETTING MELAYANG DI ATAS FLOATING DOCK -->
+    <div id="settings-popover" class="hidden fixed bottom-24 left-1/2 z-40 w-[92vw] max-w-sm bg-white border border-[#E6DDD0] rounded-3xl p-5 shadow-2xl shadow-[#3D2B1F]/15 animate-pop-menu">
+      <div class="flex items-center justify-between pb-3 mb-3 border-b border-[#F0E8DC]">
+        <div>
+          <h3 class="font-display text-lg font-bold text-[#3D2B1F]">Pengaturan & Pintasan</h3>
+          <p id="settings-user-summary" class="text-[11px] text-[#7A6658]">Akun aktif</p>
+        </div>
+        <button onclick="toggleSettingsMenu(false)" class="w-7 h-7 rounded-full bg-[#FAF6F0] hover:bg-[#F3ECE1] text-xs font-bold text-[#6A574B]">
+          ✕
+        </button>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5 text-xs">
+        <button onclick="toggleSettingsMenu(false); openAddIngredientModal();" class="p-3 rounded-2xl bg-[#FAF6F0] hover:bg-[#F3ECE1] border border-[#E6DDD0] text-left transition">
+          <div class="font-bold text-[#3D2B1F]">+ Bahan Baku</div>
+          <div class="text-[11px] text-[#7A6658] mt-0.5">Tambah item baru</div>
+        </button>
+
+        <button onclick="toggleSettingsMenu(false); openProductionModal();" class="p-3 rounded-2xl bg-[#FAF6F0] hover:bg-[#F3ECE1] border border-[#E6DDD0] text-left transition">
+          <div class="font-bold text-[#C86D51]">- Produksi</div>
+          <div class="text-[11px] text-[#7A6658] mt-0.5">Catat pemakaian</div>
+        </button>
+
+        <button onclick="toggleSettingsMenu(false); replaySplashAnimation();" class="p-3 rounded-2xl bg-[#FAF6F0] hover:bg-[#F3ECE1] border border-[#E6DDD0] text-left transition">
+          <div class="font-bold text-[#3D2B1F]">Animasi Masuk</div>
+          <div class="text-[11px] text-[#7A6658] mt-0.5">Putar ulang intro</div>
+        </button>
+
+        <button onclick="toggleSettingsMenu(false); handleLogout();" class="p-3 rounded-2xl bg-[#FDF0EE] hover:bg-[#FCE4E0] border border-[#B84A39]/20 text-left transition">
+          <div class="font-bold text-[#B84A39]">Ganti Akun</div>
+          <div class="text-[11px] text-[#B84A39]/80 mt-0.5">Kunci / Keluar</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- FLOATING MENU TENGAH BAWAH (INTERAKTIF & MUDAH DIJANGKAU DI HP) -->
+    <div id="floating-menu-dock" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-30 max-w-[96vw]">
+      <div class="flex items-center gap-1 sm:gap-1.5 px-2.5 py-2 rounded-full bg-white/95 backdrop-blur-md border border-[#E6DDD0] shadow-xl shadow-[#3D2B1F]/15">
+
+        <button data-tab="board" onclick="switchTab('board')" class="dock-tab-btn relative inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold bg-[#C86D51] text-white transition">
+          <span>Board Stok</span>
+          <span id="dock-low-dot" class="hidden w-2 h-2 rounded-full bg-red-500 ring-2 ring-white animate-pulse"></span>
+        </button>
+
+        <button data-tab="po" onclick="switchTab('po')" class="dock-tab-btn inline-flex items-center gap-1 px-3 py-2 rounded-full text-xs font-medium text-[#6A574B] hover:bg-[#F3ECE1] transition whitespace-nowrap">
+          <span>Pembelian Struk</span>
+        </button>
+
+        <button data-tab="inspection" onclick="switchTab('inspection')" class="dock-tab-btn inline-flex items-center gap-1 px-3 py-2 rounded-full text-xs font-medium text-[#6A574B] hover:bg-[#F3ECE1] transition whitespace-nowrap">
+          <span>Inspeksi</span>
+        </button>
+
+        <button id="dock-journal-btn" data-tab="journal" onclick="switchTab('journal')" class="dock-tab-btn inline-flex items-center gap-1 px-3 py-2 rounded-full text-xs font-medium text-[#6A574B] hover:bg-[#F3ECE1] transition whitespace-nowrap">
+          <span>Jurnal</span>
+        </button>
+
+        <span class="w-px h-5 bg-[#E6DDD0] mx-0.5"></span>
+
+        <button
+          id="dock-settings-btn"
+          type="button"
+          onclick="toggleSettingsMenu()"
+          class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold bg-[#F3ECE1] hover:bg-[#E8DEC9] text-[#3D2B1F] border border-[#E6DDD0] transition whitespace-nowrap"
+          title="Menu Setting & Pintasan"
+        >
+          <span>⚙</span>
+          <span>Setting</span>
+        </button>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL TAMBAH BAHAN BAKU BARU -->
+  <div id="add-ingredient-modal" class="fixed inset-0 z-50 hidden bg-[#3D2B1F]/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white border border-[#E6DDD0] rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-xl">
+      <h3 class="font-display text-xl font-bold text-[#3D2B1F] mb-1">Tambah Bahan Baku Baru</h3>
+      <p class="text-xs text-[#7A6658] mb-5">Bahan baku baru akan langsung muncul di daftar stok dan form pembelian.</p>
+
+      <form onsubmit="handleAddIngredient(event)" class="space-y-4 text-sm">
+        <div>
+          <label class="block font-medium text-[#3D2B1F] mb-1">Nama Bahan Baku</label>
+          <input type="text" id="new-ing-name" placeholder="Contoh: Keju Cheddar Blok / Almond Slice" required class="w-full bg-[#FAF6F0] border border-[#E6DDD0] rounded-xl px-3.5 py-2.5 text-[#3D2B1F]" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-[#3D2B1F] mb-1">Satuan</label>
+            <select id="new-ing-unit" class="w-full bg-[#FAF6F0] border border-[#E6DDD0] rounded-xl px-3.5 py-2.5 text-[#3D2B1F]">
+              <option value="kg">kg</option>
+              <option value="gram">gram</option>
+              <option value="liter">liter</option>
+              <option value="pack">pack</option>
+              <option value="kaleng">kaleng</option>
+              <option value="butir">butir</option>
+            </select>
+          </div>
+          <div>
+            <label class="block font-medium text-[#3D2B1F] mb-1">Batas Stok Minimum</label>
+            <input type="number" id="new-ing-min" min="1" value="10" required class="w-full bg-[#FAF6F0] border border-[#E6DDD0] rounded-xl px-3.5 py-2.5 text-[#3D2B1F]" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-medium text-[#3D2B1F] mb-1">Stok Awal (Lolos QC)</label>
+            <input type="number" id="new-ing-stock" min="0" value="0" required class="w-full bg-[#FAF6F0] border border-[#E6DDD0] rounded-xl px-3.5 py-2.5 text-[#3D2B1F]" />
+          </div>
+          <div>
+            <label class="block font-medium text-[#3D2B1F] mb-1">Estimasi Harga / Satuan</label>
+            <input type="number" id="new-ing-cost" min="100" value="25000" required class="w-full bg-[#FAF6F0] border border-[#E6DDD0] rounded-xl px-3.5 py-2.5 text-[#3D2B1F]" />
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2.5 pt-2">
+          <button type="button" onclick="closeAddIngredientModal()" class="px-4 py-2 rounded-xl bg-[#F3ECE1] text-[#6A574B] font-medium">Batal</button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-[#C86D51] hover:bg-[#B55C41] text-white font-semibold">Simpan Bahan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL PEMAKAIAN BAHAN BAKU PRODUKSI -->
+  <div id="production-modal" class="fixed inset-0 z-50 hidden bg-[#3D2B1F]/40 backdrop-blur-xs flex items-center justify-center p-4">
+    <div class="bg-white border border-[#E6DDD0] rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-xl">
+      <h3 class="font-display text-xl font-bold text-[#3D2B1F] mb-1">Ambil Bahan Baku untuk Produksi</h3>
+      <p class="text-xs text-[#7A6658] mb-5">Otomatis memotong stok siap pakai & menjurnal pemakaian ke Barang Dalam Proses (BDP).</p>
+
+      <form onsubmit="handleProductionUsage(event)" class="space-y-4 text-sm">
+        <div>
+          <label class="block font-medium text-[#3D2B1F] mb-1">Pilih Bahan Baku</label>
+          <select id="prod-ingredient" class="w-full bg-[#FAF6F0] border border-[#E6DDD0] rounded-xl px-3.5 py-2.5 text-[#3D2B1F]"></select>
+        </div>
+        <div>
+          <label class="block font-medium text-[#3D2B1F] mb-1">Jumlah Dipakai</label>
+          <input type="number" id="prod-qty" min="1" value="2" required class="w-full bg-[#FAF6F0] border border-[#E6DDD0] rounded-xl px-3.5 py-2.5 text-[#3D2B1F]" />
+        </div>
+        <div>
+          <label class="block font-medium text-[#3D2B1F] mb-1">Keterangan Batch Produksi</label>
+          <input type="text" id="prod-note" value="Produksi Adonan Roti & Pastry Pagi" required class="w-full bg-[#FAF6F0] border border-[#E6DDD0] rounded-xl px-3.5 py-2.5 text-[#3D2B1F]" />
+        </div>
+        <div class="flex justify-end gap-2.5 pt-2">
+          <button type="button" onclick="closeProductionModal()" class="px-4 py-2 rounded-xl bg-[#F3ECE1] text-[#6A574B] font-medium">Batal</button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-[#C86D51] hover:bg-[#B55C41] text-white font-semibold">Simpan & Jurnal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL LIHAT BUKTI FOTO STRUK -->
+  <div id="receipt-modal" class="fixed inset-0 z-50 hidden bg-[#3D2B1F]/60 backdrop-blur-xs flex items-center justify-center p-4" onclick="closeReceiptModal()">
+    <div class="bg-white border border-[#E6DDD0] rounded-3xl max-w-lg w-full p-6 shadow-2xl" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h3 id="receipt-modal-title" class="font-display text-xl font-bold text-[#3D2B1F]">Bukti Struk Pembelian</h3>
+          <p id="receipt-modal-sub" class="text-xs text-[#7A6658]">Detail struk & pengunggah</p>
+        </div>
+        <button onclick="closeReceiptModal()" class="px-3 py-1 rounded-xl bg-[#F3ECE1] text-xs font-semibold text-[#3D2B1F]">Tutup</button>
+      </div>
+      <div class="bg-[#FAF6F0] border border-[#E6DDD0] rounded-2xl p-3 flex items-center justify-center max-h-[65vh] overflow-auto">
+        <img id="receipt-modal-img" src="" alt="Foto Struk Pembelian" class="max-h-[58vh] w-auto rounded-xl object-contain" />
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const ACCESS_PASSWORD = 'nathantifosi';
+    let currentUser = null;
+    let splashTimer = null;
+    let draftReceiptData = null;
+    let activeTabName = 'board';
+
+    const sampleReceiptSvg = `data:image/svg+xml;utf8,${encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="420" height="540" viewBox="0 0 420 540">
+        <rect width="420" height="540" rx="16" fill="#FFFDF9" stroke="#D8CEC0" stroke-width="2"/>
+        <text x="210" y="52" text-anchor="middle" font-family="monospace" font-size="18" font-weight="bold" fill="#3D2B1F">STRUK PEMBELIAN TOKO KUE</text>
+        <text x="210" y="76" text-anchor="middle" font-family="monospace" font-size="12" fill="#7A6658">CV DAIRY &amp; BUTTER NUSANTARA</text>
+        <line x1="36" y1="96" x2="384" y2="96" stroke="#C7B9A8" stroke-dasharray="6,6"/>
+        <text x="36" y="126" font-family="monospace" font-size="13" fill="#3D2B1F">No. Struk : STR-2026-881</text>
+        <text x="36" y="150" font-family="monospace" font-size="13" fill="#3D2B1F">Tanggal   : 23/11/2026 08:45</text>
+        <line x1="36" y1="172" x2="384" y2="172" stroke="#C7B9A8" stroke-dasharray="6,6"/>
+        <text x="36" y="206" font-family="monospace" font-size="14" font-weight="bold" fill="#3D2B1F">Unsalted Butter 15 kg</text>
+        <text x="36" y="230" font-family="monospace" font-size="13" fill="#6A574B">15 x Rp 115.000</text>
+        <text x="384" y="230" text-anchor="end" font-family="monospace" font-size="13" font-weight="bold" fill="#3D2B1F">Rp 1.725.000</text>
+        <line x1="36" y1="260" x2="384" y2="260" stroke="#C7B9A8" stroke-dasharray="6,6"/>
+        <text x="36" y="294" font-family="monospace" font-size="15" font-weight="bold" fill="#2E6F40">TOTAL BAYAR</text>
+        <text x="384" y="294" text-anchor="end" font-family="monospace" font-size="15" font-weight="bold" fill="#2E6F40">Rp 1.725.000</text>
+        <rect x="65" y="340" width="290" height="120" rx="12" fill="#F3ECE1" stroke="#E6DDD0"/>
+        <text x="210" y="388" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="bold" fill="#C86D51">BUKTI STRUK TERLAMPIR</text>
+        <text x="210" y="412" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#7A6658">Wajib dicocokkan saat inspeksi QC</text>
+        <text x="210" y="434" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#7A6658">dan audit jurnal akuntansi</text>
+      </svg>
+    `)}`;
+
+    function dismissSplash(instant = false) {
+      if (splashTimer) clearTimeout(splashTimer);
+      const splash = document.getElementById('splash-screen');
+      const authGate = document.getElementById('auth-gate');
+
+      if (!splash || splash.classList.contains('hidden')) {
+        authGate.classList.remove('hidden');
+        return;
+      }
+
+      if (instant) {
+        splash.classList.add('hidden');
+        authGate.classList.remove('hidden');
+        authGate.classList.add('content-reveal');
+        document.getElementById('login-username').focus();
+        return;
+      }
+
+      splash.classList.add('splash-exit');
+      setTimeout(() => {
+        splash.classList.add('hidden');
+        authGate.classList.remove('hidden');
+        authGate.classList.add('content-reveal');
+        document.getElementById('login-username').focus();
+      }, 520);
+    }
+
+    function replaySplashAnimation() {
+      const splash = document.getElementById('splash-screen');
+      const shell = document.getElementById('app-shell');
+
+      shell.classList.add('hidden', 'opacity-0');
+      splash.classList.remove('hidden', 'splash-exit');
+      void splash.offsetWidth;
+      splash.querySelectorAll('[class*="animate-"]').forEach(el => {
+        const animName = getComputedStyle(el).animationName;
+        const animDur = getComputedStyle(el).animationDuration;
+        const animCurve = getComputedStyle(el).animationTimingFunction;
+        el.style.animation = 'none';
+        void el.offsetWidth;
+        el.style.animation = `${animName} ${animDur} ${animCurve} forwards`;
+      });
+
+      splashTimer = setTimeout(() => {
+        splash.classList.add('splash-exit');
+        setTimeout(() => {
+          splash.classList.add('hidden');
+          shell.classList.remove('hidden', 'opacity-0');
+          shell.classList.add('content-reveal');
+        }, 520);
+      }, 1100);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      splashTimer = setTimeout(() => dismissSplash(false), 1200);
+    });
+
+    function toggleSettingsMenu(forceState = null) {
+      const popover = document.getElementById('settings-popover');
+      const shouldOpen = forceState !== null ? forceState : popover.classList.contains('hidden');
+      if (shouldOpen && currentUser) {
+        document.getElementById('settings-user-summary').textContent =
+          `${currentUser.name} • ${currentUser.role === 'owner' ? 'Owner' : 'Employee / Pekerja'}`;
+        popover.classList.remove('hidden');
+      } else {
+        popover.classList.add('hidden');
+      }
+    }
+
+    function updateRoleHint() {
+      const selectedRole = document.querySelector('input[name="userRole"]:checked').value;
+      const hint = document.getElementById('role-hint');
+      if (selectedRole === 'owner') {
+        hint.textContent = 'Mode Owner: Akses penuh ke stok, bukti struk, inspeksi QC, nilai persediaan, dan Jurnal Umum Otomatis.';
+      } else {
+        hint.textContent = 'Mode Employee: Dapat mengelola stok, upload foto struk pembelian, dan inspeksi QC. Jurnal akuntansi dikunci khusus Owner.';
+      }
+    }
+
+    function handleLogin(e) {
+      e.preventDefault();
+      const username = document.getElementById('login-username').value.trim();
+      const password = document.getElementById('login-password').value;
+      const role = document.querySelector('input[name="userRole"]:checked').value;
+      const errorBox = document.getElementById('login-error');
+      const authCard = document.getElementById('auth-card');
+
+      if (!username || password !== ACCESS_PASSWORD) {
+        errorBox.classList.remove('hidden');
+        authCard.classList.remove('animate-shake');
+        void authCard.offsetWidth;
+        authCard.classList.add('animate-shake');
+        return;
+      }
+
+      errorBox.classList.add('hidden');
+      currentUser = { name: username, role };
+      applyRolePermissions();
+
+      document.getElementById('auth-gate').classList.add('hidden');
+      const shell = document.getElementById('app-shell');
+      shell.classList.remove('hidden', 'opacity-0');
+      shell.classList.add('content-reveal');
+
+      switchTab('board');
+    }
+
+    function applyRolePermissions() {
+      if (!currentUser) return;
+      document.getElementById('active-user-name').textContent = currentUser.name;
+      document.getElementById('active-user-role').textContent =
+        currentUser.role === 'owner' ? 'Owner • Akses Penuh' : 'Employee / Pekerja';
+
+      const journalDesktop = document.getElementById('nav-journal-btn-desktop');
+      const journalDock = document.getElementById('dock-journal-btn');
+      const ownerKpiBox = document.getElementById('owner-kpi-box');
+
+      if (currentUser.role === 'owner') {
+        journalDesktop.classList.remove('hidden');
+        journalDock.classList.remove('hidden');
+        ownerKpiBox.classList.remove('hidden');
+      } else {
+        journalDesktop.classList.add('hidden');
+        journalDock.classList.add('hidden');
+        ownerKpiBox.classList.add('hidden');
+      }
+    }
+
+    function handleLogout() {
+      toggleSettingsMenu(false);
+      currentUser = null;
+      document.getElementById('login-password').value = '';
+      document.getElementById('app-shell').classList.add('hidden', 'opacity-0');
+      document.getElementById('auth-gate').classList.remove('hidden');
+      document.getElementById('login-username').focus();
+    }
+
+    let ingredients = [
+      { id: 'ING-01', name: 'Tepung Terigu Protein Tinggi', unit: 'kg', stock: 45, minStock: 20, avgCost: 14000, nearestExp: '2027-03-15' },
+      { id: 'ING-02', name: 'Unsalted Butter (Mentega Tawar)', unit: 'kg', stock: 8, minStock: 12, avgCost: 115000, nearestExp: '2026-12-20' },
+      { id: 'ING-03', name: 'Telur Ayam Negeri Segar', unit: 'kg', stock: 18, minStock: 15, avgCost: 28000, nearestExp: '2026-12-05' },
+      { id: 'ING-04', name: 'Dark Compound Chocolate', unit: 'kg', stock: 22, minStock: 10, avgCost: 68000, nearestExp: '2027-05-10' },
+      { id: 'ING-05', name: 'Susu UHT Full Cream', unit: 'liter', stock: 0, minStock: 15, avgCost: 18500, nearestExp: '2026-12-12' },
+      { id: 'ING-06', name: 'Ragi Instan (Instant Yeast)', unit: 'pack', stock: 14, minStock: 8, avgCost: 32000, nearestExp: '2027-02-01' }
+    ];
+
+    let purchaseOrders = [
+      {
+        poNumber: 'PO-2026-001',
+        receiptNo: 'STR-2026-881',
+        date: '2026-11-23',
+        supplier: 'CV Dairy & Butter Nusantara',
+        ingredientId: 'ING-02',
+        qtyOrdered: 15,
+        unitPrice: 115000,
+        paymentMethod: 'Kredit (Utang Usaha)',
+        createdBy: 'Budi (Staff Gudang)',
+        status: 'Menunggu Inspeksi',
+        receipt: {
+          name: 'struk-butter-001.png',
+          uploadedAt: '2026-11-23 08:48',
+          dataUrl: sampleReceiptSvg
+        }
+      }
+    ];
+
+    let journals = [
+      {
+        journalNo: 'JRN-2026-0001',
+        date: '2026-11-22',
+        ref: 'Saldo Awal / Opening',
+        receiptNo: '-',
+        description: 'Saldo awal persediaan bahan baku siap produksi',
+        lines: [
+          { accountCode: '1-1400', accountName: 'Persediaan Bahan Baku', debit: 3440500, credit: 0 },
+          { accountCode: '3-1000', accountName: 'Modal Disetor / Saldo Awal', debit: 0, credit: 3440500 }
+        ]
+      }
+    ];
+
+    const formatRp = (num) => 'Rp ' + Number(num).toLocaleString('id-ID');
+
+    function getCriticalItems() {
+      return ingredients.filter(i => i.stock <= 0 || i.stock <= i.minStock);
+    }
+
+    function syncTabStyles() {
+      document.querySelectorAll('.desktop-tab-btn').forEach(btn => {
+        const isActive = btn.dataset.tab === activeTabName;
+        btn.className = isActive
+          ? 'desktop-tab-btn relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-[#C86D51] text-white shadow-sm'
+          : 'desktop-tab-btn relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-[#6A574B] hover:bg-[#EFE7DC]';
+      });
+
+      document.querySelectorAll('.dock-tab-btn').forEach(btn => {
+        const isActive = btn.dataset.tab === activeTabName;
+        btn.className = isActive
+          ? 'dock-tab-btn relative inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold bg-[#C86D51] text-white transition whitespace-nowrap'
+          : 'dock-tab-btn relative inline-flex items-center gap-1 px-3 py-2 rounded-full text-xs font-medium text-[#6A574B] hover:bg-[#F3ECE1] transition whitespace-nowrap';
+      });
+    }
+
+    function switchTab(tabName) {
+      if (!currentUser) return;
+      if (tabName === 'journal' && currentUser.role !== 'owner') {
+        alert('Akses ditolak: Menu Jurnal Umum hanya dapat diakses oleh Owner.');
+        return;
+      }
+
+      toggleSettingsMenu(false);
+      activeTabName = tabName;
+
+      document.querySelectorAll('.tab-panel').forEach(el => el.classList.add('hidden'));
+      document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+
+      syncTabStyles();
+      renderAll();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function renderRedDots() {
+      const critical = getCriticalItems();
+      const count = critical.length;
+
+      const dotDesktop = document.getElementById('nav-low-dot-desktop');
+      const dotDock = document.getElementById('dock-low-dot');
+      const heroDot = document.getElementById('hero-low-dot');
+      const heroCount = document.getElementById('hero-low-count');
+      const boardPill = document.getElementById('board-alert-pill');
+      const boardText = document.getElementById('board-alert-text');
+
+      if (count > 0) {
+        dotDesktop.classList.remove('hidden');
+        dotDock.classList.remove('hidden');
+        heroDot.classList.remove('hidden');
+        heroCount.textContent = count;
+        boardPill.classList.remove('hidden');
+        boardText.textContent = `${count} bahan baku habis atau kurang`;
+      } else {
+        dotDesktop.classList.add('hidden');
+        dotDock.classList.add('hidden');
+        heroDot.classList.add('hidden');
+        boardPill.classList.add('hidden');
+      }
+    }
+
+    function renderTicker() {
+      const critical = getCriticalItems();
+      const pendingInspections = purchaseOrders.filter(p => p.status === 'Menunggu Inspeksi');
+
+      const items = [
+        ...critical.map(i =>
+          i.stock <= 0
+            ? `STOK HABIS: ${i.name} (0 ${i.unit} • Min: ${i.minStock} ${i.unit})`
+            : `STOK KURANG: ${i.name} tersisa ${i.stock} ${i.unit} (Min: ${i.minStock} ${i.unit})`
+        ),
+        ...pendingInspections.map(p => `MENUNGGU INSPEKSI QC: ${p.poNumber} (Struk ${p.receiptNo}) dari ${p.supplier}`),
+        `SESI AKTIF: ${currentUser ? currentUser.name : '-'} (${currentUser ? currentUser.role.toUpperCase() : '-'})`
+      ];
+
+      const tickerHTML = [...items, ...items]
+        .map(text => `<span class="flex items-center gap-3"><span>${text}</span><span class="text-[#C86D51]">•</span></span>`)
+        .join('');
+
+      document.getElementById('live-ticker').innerHTML = tickerHTML;
+      document.getElementById('hero-pending-count').textContent = pendingInspections.length;
+    }
+
+    function renderInventoryBoard() {
+      const grid = document.getElementById('inventory-grid');
+      let totalValue = 0;
+
+      grid.innerHTML = ingredients.map(item => {
+        const itemValue = item.stock * item.avgCost;
+        totalValue += itemValue;
+        const isEmpty = item.stock <= 0;
+        const isLow = item.stock <= item.minStock;
+
+        let badgeHTML = `
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#EBF5EE] text-[#2E6F40]">
+            <span class="w-2 h-2 rounded-full bg-[#3A8E54]"></span>
+            Stok Aman
+          </span>
+        `;
+
+        if (isEmpty) {
+          badgeHTML = `
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-50 border border-red-200 text-red-700">
+              <span class="w-2.5 h-2.5 rounded-full bg-red-600 animate-ping"></span>
+              Habis (0)
+            </span>
+          `;
+        } else if (isLow) {
+          badgeHTML = `
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-50 border border-red-200 text-red-700">
+              <span class="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse"></span>
+              Stok Kurang
+            </span>
+          `;
+        }
+
+        return `
+          <div class="bg-white border ${isLow ? 'border-red-300' : 'border-[#E6DDD0]'} rounded-2xl p-5 flex flex-col justify-between shadow-sm hover:shadow-md transition">
+            <div>
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  ${isLow ? '<span class="w-2.5 h-2.5 rounded-full bg-red-600 shrink-0" title="Persediaan kurang atau habis"></span>' : ''}
+                  <span class="text-xs font-mono text-[#8C7A6B]">${item.id}</span>
+                </div>
+                ${badgeHTML}
+              </div>
+              <h3 class="mt-2.5 font-semibold text-[#3D2B1F] text-base">${item.name}</h3>
+              <div class="mt-4 flex items-baseline justify-between">
+                <div>
+                  <span class="text-2xl font-bold ${isLow ? 'text-red-700' : 'text-[#3D2B1F]'}">${item.stock}</span>
+                  <span class="text-xs text-[#7A6658] ml-1">${item.unit}</span>
+                </div>
+                <span class="text-xs text-[#7A6658]">Min: ${item.minStock} ${item.unit}</span>
+              </div>
+            </div>
+
+            <div class="mt-4 pt-3 border-t border-[#F0E8DC] flex items-center justify-between text-xs text-[#7A6658]">
+              <span>FEFO Exp: <strong class="text-[#3D2B1F]">${item.nearestExp}</strong></span>
+              ${currentUser && currentUser.role === 'owner'
+                ? `<span>Nilai: <strong class="text-[#2E6F40]">${formatRp(itemValue)}</strong></span>`
+                : `<span>Status: <strong class="${isLow ? 'text-red-700' : 'text-[#2E6F40]'}">${isLow ? 'Segera Beli' : 'Siap Pakai'}</strong></span>`
+              }
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('kpi-inventory-value').textContent = formatRp(totalValue);
+      document.getElementById('kpi-journal-count').textContent = journals.length;
+    }
+
+    function handleReceiptPreview(event) {
+      const file = event.target.files[0];
+      if (!file) {
+        draftReceiptData = null;
+        document.getElementById('receipt-preview-box').classList.add('hidden');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const nowTime = new Date().toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' });
+        draftReceiptData = {
+          name: file.name,
+          sizeKB: Math.max(1, Math.round(file.size / 1024)),
+          uploadedAt: nowTime,
+          dataUrl: e.target.result
+        };
+
+        document.getElementById('receipt-preview-img').src = e.target.result;
+        document.getElementById('receipt-preview-name').textContent = file.name;
+        document.getElementById('receipt-preview-meta').textContent = `${draftReceiptData.sizeKB} KB • Diunggah ${nowTime}`;
+        document.getElementById('receipt-preview-box').classList.remove('hidden');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function openReceiptModal(poNumber) {
+      const po = purchaseOrders.find(p => p.poNumber === poNumber);
+      if (!po || !po.receipt) return;
+      const ing = ingredients.find(i => i.id === po.ingredientId);
+
+      document.getElementById('receipt-modal-title').textContent = `Bukti Struk ${po.receiptNo}`;
+      document.getElementById('receipt-modal-sub').textContent =
+        `${po.poNumber} • ${ing ? ing.name : ''} • Diunggah oleh ${po.createdBy} (${po.receipt.uploadedAt})`;
+      document.getElementById('receipt-modal-img').src = po.receipt.dataUrl;
+      document.getElementById('receipt-modal').classList.remove('hidden');
+    }
+
+    function closeReceiptModal() {
+      document.getElementById('receipt-modal').classList.add('hidden');
+    }
+
+    function renderPOTable() {
+      const select = document.getElementById('po-ingredient');
+      select.innerHTML = ingredients.map(i => `<option value="${i.id}">${i.name} (${i.unit})</option>`).join('');
+
+      const tbody = document.getElementById('po-table-body');
+      const mobileCards = document.getElementById('po-mobile-cards');
+
+      tbody.innerHTML = purchaseOrders.map(po => {
+        const ing = ingredients.find(i => i.id === po.ingredientId);
+        const total = po.qtyOrdered * po.unitPrice;
+        let badgeClass = 'bg-[#FDF6E7] text-[#A8711D]';
+        if (po.status === 'Menunggu Inspeksi') badgeClass = 'bg-[#EDF3F8] text-[#3B6998]';
+        if (po.status === 'Selesai') badgeClass = 'bg-[#EBF5EE] text-[#2E6F40]';
+
+        return `
+          <tr>
+            <td class="py-3.5 font-mono text-xs">
+              <div class="font-semibold text-[#3D2B1F]">${po.poNumber}</div>
+              <div class="text-[#7A6658]">Struk: ${po.receiptNo || '-'}</div>
+            </td>
+            <td class="py-3.5">
+              <div class="font-semibold text-[#3D2B1F]">${ing ? ing.name : po.ingredientId}</div>
+              <div class="text-xs text-[#7A6658]">${po.supplier} • ${formatRp(total)}</div>
+            </td>
+            <td class="py-3.5 text-[#3D2B1F]">${po.qtyOrdered} ${ing ? ing.unit : ''}</td>
+            <td class="py-3.5">
+              ${po.receipt
+                ? `<button type="button" onclick="openReceiptModal('${po.poNumber}')" class="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-[#FAF6F0] hover:bg-[#F3ECE1] border border-[#E6DDD0] text-xs font-semibold text-[#3D2B1F] transition">
+                    <img src="${po.receipt.dataUrl}" alt="Struk" class="w-6 h-6 rounded object-cover border border-[#E6DDD0]" />
+                    <span>Lihat Struk</span>
+                  </button>`
+                : `<span class="text-xs text-red-600">Tanpa Struk</span>`
+              }
+            </td>
+            <td class="py-3.5">
+              <span class="px-3 py-1 rounded-full text-xs font-semibold ${badgeClass}">${po.status}</span>
+            </td>
+            <td class="py-3.5 text-right">
+              ${po.status === 'Menunggu Inspeksi'
+                ? `<button onclick="switchTab('inspection')" class="px-3 py-1.5 bg-[#FAF6F0] hover:bg-[#F3ECE1] border border-[#E6DDD0] text-[#3D2B1F] text-xs font-semibold rounded-lg transition">Inspeksi</button>`
+                : `<span class="text-xs text-[#8C7A6B]">Terverifikasi</span>`
+              }
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      mobileCards.innerHTML = purchaseOrders.map(po => {
+        const ing = ingredients.find(i => i.id === po.ingredientId);
+        const total = po.qtyOrdered * po.unitPrice;
+        let badgeClass = 'bg-[#FDF6E7] text-[#A8711D]';
+        if (po.status === 'Menunggu Inspeksi') badgeClass = 'bg-[#EDF3F8] text-[#3B6998]';
+        if (po.status === 'Selesai') badgeClass = 'bg-[#EBF5EE] text-[#2E6F40]';
+
+        return `
+          <div class="p-4 rounded-2xl bg-[#FAF6F0] border border-[#E6DDD0] space-y-3">
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-mono text-xs font-bold text-[#3D2B1F]">${po.poNumber} • ${po.receiptNo || '-'}</span>
+              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${badgeClass}">${po.status}</span>
+            </div>
+            <div>
+              <div class="font-semibold text-sm text-[#3D2B1F]">${ing ? ing.name : po.ingredientId}</div>
+              <div class="text-xs text-[#7A6658]">${po.supplier} • ${po.qtyOrdered} ${ing ? ing.unit : ''} • ${formatRp(total)}</div>
+            </div>
+            <div class="flex items-center justify-between pt-2 border-t border-[#E6DDD0]">
+              ${po.receipt
+                ? `<button type="button" onclick="openReceiptModal('${po.poNumber}')" class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#C86D51]">
+                    <span>Lihat Foto Struk</span>
+                  </button>`
+                : `<span class="text-xs text-red-600">Tanpa Struk</span>`
+              }
+              ${po.status === 'Menunggu Inspeksi'
+                ? `<button onclick="switchTab('inspection')" class="px-3 py-1 rounded-lg bg-white border border-[#E6DDD0] text-xs font-semibold text-[#3D2B1F]">Inspeksi QC</button>`
+                : `<span class="text-xs text-[#8C7A6B]">Selesai</span>`
+              }
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function handleCreatePO(e) {
+      e.preventDefault();
+      if (!draftReceiptData) {
+        alert('Mohon lampirkan foto struk pembelian terlebih dahulu sebagai bukti transaksi.');
+        return;
+      }
+
+      const supplier = document.getElementById('po-supplier').value.trim();
+      const ingredientId = document.getElementById('po-ingredient').value;
+      const qtyOrdered = Number(document.getElementById('po-qty').value);
+      const unitPrice = Number(document.getElementById('po-price').value);
+      const receiptNo = document.getElementById('po-receipt-no').value.trim();
+      const paymentMethod = document.getElementById('po-payment').value;
+
+      const newPO = {
+        poNumber: `PO-2026-00${purchaseOrders.length + 1}`,
+        receiptNo,
+        date: new Date().toISOString().slice(0, 10),
+        supplier,
+        ingredientId,
+        qtyOrdered,
+        unitPrice,
+        paymentMethod,
+        createdBy: `${currentUser.name} (${currentUser.role})`,
+        status: 'Menunggu Inspeksi',
+        receipt: { ...draftReceiptData }
+      };
+
+      purchaseOrders.unshift(newPO);
+      document.getElementById('po-form').reset();
+      draftReceiptData = null;
+      document.getElementById('receipt-preview-box').classList.add('hidden');
+
+      renderAll();
+      alert(`Pembelian ${newPO.poNumber} dengan bukti struk ${receiptNo} tersimpan dan masuk antrean Inspeksi QC.`);
+    }
+
+    function renderInspectionList() {
+      const container = document.getElementById('inspection-list');
+      const pending = purchaseOrders.filter(p => p.status === 'Menunggu Inspeksi');
+
+      if (pending.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full bg-white border border-[#E6DDD0] rounded-2xl p-10 text-center text-[#7A6658] text-sm">
+            Tidak ada pengiriman bahan baku yang menunggu inspeksi saat ini.
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = pending.map(po => {
+        const ing = ingredients.find(i => i.id === po.ingredientId);
+        return `
+          <div class="bg-white border border-[#4B7BA6]/35 rounded-2xl p-5 sm:p-6 space-y-4 shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="font-mono text-xs font-semibold px-3 py-1 rounded-full bg-[#EDF3F8] text-[#3B6998]">${po.poNumber}</span>
+                <span class="font-mono text-xs px-2.5 py-1 rounded-full bg-[#FAF6F0] border border-[#E6DDD0] text-[#3D2B1F]">Struk: ${po.receiptNo || '-'}</span>
+              </div>
+              <span class="text-xs text-[#7A6658]">${po.supplier}</span>
+            </div>
+
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <h3 class="text-lg font-bold text-[#3D2B1F]">${ing ? ing.name : po.ingredientId}</h3>
+                <p class="text-xs text-[#7A6658]">Dipesan: ${po.qtyOrdered} ${ing ? ing.unit : ''} @ ${formatRp(po.unitPrice)} (${po.paymentMethod})</p>
+                <p class="text-[11px] text-[#8C7A6B] mt-0.5">Diinput oleh: ${po.createdBy}</p>
+              </div>
+              ${po.receipt
+                ? `<button type="button" onclick="openReceiptModal('${po.poNumber}')" class="shrink-0 flex flex-col items-center p-1.5 rounded-xl bg-[#FAF6F0] hover:bg-[#F3ECE1] border border-[#E6DDD0] transition">
+                    <img src="${po.receipt.dataUrl}" alt="Bukti Struk" class="w-14 h-14 rounded-lg object-cover" />
+                    <span class="text-[10px] font-semibold text-[#C86D51] mt-1">Cek Struk</span>
+                  </button>`
+                : ''
+              }
+            </div>
+
+            <form onsubmit="approveInspection(event, '${po.poNumber}')" class="space-y-3 text-sm pt-3 border-t border-[#F0E8DC]">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-medium text-[#3D2B1F] mb-1">Qty Lolos QC (Accepted)</label>
+                  <input type="number" name="acceptedQty" min="0" max="${po.qtyOrdered}" value="${po.qtyOrdered}" required class="w-full bg-[#FAF6F0] border border-[#E6DDD0] rounded-xl px-3.5 py-2 text-[#3D2B1F]" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-[#3D2B1F] mb-1">Tanggal Kedaluwarsa</label>
+                  <input type="date" name="expDate" value="2027-04-01" required class="w-full bg-[#FAF6F0] border border-[#E6DDD0] rounded-xl px-3.5 py-2 text-[#3D2B1F]" />
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-[#3D2B1F] mb-1">Catatan Cek Fisik & Kecocokan Struk</label>
+                <input type="text" name="qcNote" value="Sesuai struk, kemasan tersegel utuh, suhu & aroma normal" required class="w-full bg-[#FAF6F0] border border-[#E6DDD0] rounded-xl px-3.5 py-2 text-[#3D2B1F]" />
+              </div>
+
+              <button type="submit" class="w-full py-2.5 bg-[#2E6F40] hover:bg-[#255A34] text-white font-semibold rounded-xl transition shadow-sm">
+                Setujui Inspeksi (Petugas: ${currentUser ? currentUser.name : '-'})
+              </button>
+            </form>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function approveInspection(e, poNumber) {
+      e.preventDefault();
+      const form = e.target;
+      const acceptedQty = Number(form.acceptedQty.value);
+      const expDate = form.expDate.value;
+      const qcNote = form.qcNote.value;
+
+      const po = purchaseOrders.find(p => p.poNumber === poNumber);
+      const ing = ingredients.find(i => i.id === po.ingredientId);
+      const rejectedQty = po.qtyOrdered - acceptedQty;
+
+      if (acceptedQty > 0) {
+        const oldTotalVal = ing.stock * ing.avgCost;
+        const newIncomingVal = acceptedQty * po.unitPrice;
+        ing.stock += acceptedQty;
+        ing.avgCost = Math.round((oldTotalVal + newIncomingVal) / ing.stock);
+        ing.nearestExp = expDate;
+
+        const isCredit = po.paymentMethod.includes('Kredit');
+        const creditAccount = isCredit
+          ? { code: '2-1100', name: 'Utang Usaha (Accounts Payable)' }
+          : { code: '1-1100', name: 'Kas / Bank Operasional' };
+
+        journals.unshift({
+          journalNo: `JRN-2026-000${journals.length + 1}`,
+          date: new Date().toISOString().slice(0, 10),
+          ref: `${po.poNumber} • Struk ${po.receiptNo || '-'} (QC: ${currentUser.name})`,
+          description: `Penerimaan & lolos inspeksi ${acceptedQty} ${ing.unit} ${ing.name} dari ${po.supplier}. Catatan QC: ${qcNote}` + (rejectedQty > 0 ? ` (Retur/Tolak: ${rejectedQty} ${ing.unit})` : ''),
+          lines: [
+            { accountCode: '1-1400', accountName: 'Persediaan Bahan Baku', debit: newIncomingVal, credit: 0 },
+            { accountCode: creditAccount.code, accountName: creditAccount.name, debit: 0, credit: newIncomingVal }
+          ]
+        });
+      }
+
+      po.status = 'Selesai';
+      if (currentUser.role === 'owner') {
+        switchTab('journal');
+      } else {
+        alert(`Inspeksi ${poNumber} disetujui oleh ${currentUser.name}. Stok siap pakai bertambah & jurnal otomatis tercatat untuk Owner.`);
+        switchTab('board');
+      }
+    }
+
+    function openAddIngredientModal() {
+      document.getElementById('add-ingredient-modal').classList.remove('hidden');
+    }
+
+    function closeAddIngredientModal() {
+      document.getElementById('add-ingredient-modal').classList.add('hidden');
+    }
+
+    function handleAddIngredient(e) {
+      e.preventDefault();
+      const name = document.getElementById('new-ing-name').value.trim();
+      const unit = document.getElementById('new-ing-unit').value;
+      const minStock = Number(document.getElementById('new-ing-min').value);
+      const stock = Number(document.getElementById('new-ing-stock').value);
+      const avgCost = Number(document.getElementById('new-ing-cost').value);
+
+      const newId = `ING-0${ingredients.length + 1}`;
+      ingredients.push({
+        id: newId,
+        name,
+        unit,
+        stock,
+        minStock,
+        avgCost,
+        nearestExp: '2027-06-01'
+      });
+
+      if (stock > 0 && avgCost > 0) {
+        const initVal = stock * avgCost;
+        journals.unshift({
+          journalNo: `JRN-2026-000${journals.length + 1}`,
+          date: new Date().toISOString().slice(0, 10),
+          ref: `${newId} (Stok Awal • ${currentUser.name})`,
+          description: `Penambahan bahan baku baru ${name} (${stock} ${unit})`,
+          lines: [
+            { accountCode: '1-1400', accountName: 'Persediaan Bahan Baku', debit: initVal, credit: 0 },
+            { accountCode: '3-1000', accountName: 'Modal Disetor / Saldo Awal', debit: 0, credit: initVal }
+          ]
+        });
+      }
+
+      e.target.reset();
+      closeAddIngredientModal();
+      renderAll();
+      alert(`Bahan baku "${name}" berhasil ditambahkan!`);
+    }
+
+    function openProductionModal() {
+      const sel = document.getElementById('prod-ingredient');
+      sel.innerHTML = ingredients.map(i => `<option value="${i.id}">${i.name} (Tersedia: ${i.stock} ${i.unit})</option>`).join('');
+      document.getElementById('production-modal').classList.remove('hidden');
+    }
+
+    function closeProductionModal() {
+      document.getElementById('production-modal').classList.add('hidden');
+    }
+
+    function handleProductionUsage(e) {
+      e.preventDefault();
+      const ingId = document.getElementById('prod-ingredient').value;
+      const qty = Number(document.getElementById('prod-qty').value);
+      const note = document.getElementById('prod-note').value;
+
+      const ing = ingredients.find(i => i.id === ingId);
+      if (qty > ing.stock) {
+        alert(`Stok tidak mencukupi! Sisa stok ${ing.name} hanya ${ing.stock} ${ing.unit}.`);
+        return;
+      }
+
+      const usageValue = qty * ing.avgCost;
+      ing.stock -= qty;
+
+      journals.unshift({
+        journalNo: `JRN-2026-000${journals.length + 1}`,
+        date: new Date().toISOString().slice(0, 10),
+        ref: `PROD-${Date.now().toString().slice(-4)} (${currentUser.name})`,
+        description: `Pemakaian ${qty} ${ing.unit} ${ing.name} — ${note}`,
+        lines: [
+          { accountCode: '1-1450', accountName: 'Persediaan Barang Dalam Proses (BDP)', debit: usageValue, credit: 0 },
+          { accountCode: '1-1400', accountName: 'Persediaan Bahan Baku', debit: 0, credit: usageValue }
+        ]
+      });
+
+      closeProductionModal();
+      if (currentUser.role === 'owner') {
+        switchTab('journal');
+      } else {
+        alert(`Pemakaian ${qty} ${ing.unit} ${ing.name} dicatat oleh ${currentUser.name}.`);
+        switchTab('board');
+      }
+    }
+
+    function renderJournals() {
+      const list = document.getElementById('journal-list');
+      list.innerHTML = journals.map(j => `
+        <div class="bg-white border border-[#E6DDD0] rounded-2xl overflow-hidden shadow-sm">
+          <div class="px-4 sm:px-5 py-3.5 bg-[#F6EFE6] border-b border-[#E6DDD0] flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+              <span class="font-mono font-bold text-[#C86D51]">${j.journalNo}</span>
+              <span class="text-[#7A6658]">${j.date}</span>
+              <span class="px-2.5 py-0.5 rounded-full bg-white border border-[#E6DDD0] text-[#3D2B1F] font-medium">${j.ref}</span>
+            </div>
+            <span class="text-[#6A574B]">${j.description}</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm min-w-[460px]">
+              <thead class="text-xs text-[#7A6658] border-b border-[#F0E8DC]">
+                <tr>
+                  <th class="px-4 sm:px-5 py-2.5 text-left">Kode Akun</th>
+                  <th class="px-4 sm:px-5 py-2.5 text-left">Nama Akun</th>
+                  <th class="px-4 sm:px-5 py-2.5 text-right">Debit</th>
+                  <th class="px-4 sm:px-5 py-2.5 text-right">Kredit</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[#F6EFE6]">
+                ${j.lines.map(l => `
+                  <tr>
+                    <td class="px-4 sm:px-5 py-3 font-mono text-xs text-[#8C7A6B]">${l.accountCode}</td>
+                    <td class="px-4 sm:px-5 py-3 ${l.credit > 0 ? 'pl-8 sm:pl-10 text-[#6A574B]' : 'text-[#3D2B1F] font-semibold'}">${l.accountName}</td>
+                    <td class="px-4 sm:px-5 py-3 text-right font-mono font-medium text-[#2E6F40]">${l.debit > 0 ? formatRp(l.debit) : '-'}</td>
+                    <td class="px-4 sm:px-5 py-3 text-right font-mono font-medium text-[#3B6998]">${l.credit > 0 ? formatRp(l.credit) : '-'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderAll() {
+      renderRedDots();
+      renderTicker();
+      renderInventoryBoard();
+      renderPOTable();
+      renderInspectionList();
+      renderJournals();
+    }
+  </script>
+</body>
+</html>
